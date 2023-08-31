@@ -27,14 +27,16 @@ def main():
     # Model Parameters
     batch_size = 100
     seq_len = 10  # Number of frames in the sequence
-    samples = 400  # frame_size * sample_rate
-    n_classes = 10
-    sample_rate = 32000
+    sample_rate = 32000 # samples/sec 
+    frame_duration = 0.05 # seconds (50ms)
+    frame_size = int(sample_rate * frame_duration) # 1,600
 
-    frame_size = 800
-    step_size = 800
+
+    n_classes = 10
+
+    step_size = frame_size # we move by a whole frame
     
-    input_shape = (seq_len, samples, 1)
+    input_shape = (seq_len, frame_size, 1)
     model = get_denet(input_shape, n_classes, sr=sample_rate, before_pooling=False)
     
     training_wav_files = list_wav_files(TRAINING_SOUNDS_FOLDER)
@@ -45,15 +47,15 @@ def main():
     
     for wav_file in training_wav_files:
         frames = process_wav_file(wav_file, frame_size, step_size, sample_rate)
-        frames_reshaped = frames.reshape(-1, seq_len, samples, 1)
+        frames_reshaped = frames.reshape(-1, seq_len, frame_size, 1)
         y_pred = model.predict(frames_reshaped)
         # Further processing on y_pred
     
-    for wav_file in testing_wav_files:
-        frames = process_wav_file(wav_file, frame_size, step_size, sample_rate)
-        frames_reshaped = frames.reshape(-1, seq_len, samples, 1)
-        y_pred = model.predict(frames_reshaped)
-        # Further processing on y_pred
+    # for wav_file in testing_wav_files:
+    #     frames = process_wav_file(wav_file, frame_size, step_size, sample_rate)
+    #     frames_reshaped = frames.reshape(-1, seq_len, frame_size, 1)
+    #     y_pred = model.predict(frames_reshaped)
+    #     # Further processing on y_pred
 
 if __name__ == '__main__':
     main()
