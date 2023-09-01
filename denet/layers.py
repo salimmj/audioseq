@@ -58,7 +58,7 @@ class SincConv1D(Layer):
 
         self.N_filt = N_filt
         self.Filt_dim = Filt_dim
-        self.fs = fs
+        self.fs = fs # sample rate
         self.bw_regularizer = bw_regularizer
         self.low_freq_mel = low_freq_mel
         self.high_freq_mel = high_freq_mel
