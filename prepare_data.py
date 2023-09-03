@@ -65,9 +65,15 @@ def main():
     all_frames = []
     all_labels = []
 
+    # print folders
+    print(f"Training sounds folder: {TRAINING_SOUNDS_FOLDER}")
+    print(f"Training XML folder: {TRAINING_FOLDER}")
+
     # Load sound and corresponding XML files
     training_wav_files = list_wav_files(TRAINING_SOUNDS_FOLDER)
     training_xml_files = list_xml_files(TRAINING_FOLDER)
+
+    print(f"Number of training sound files: {len(training_wav_files)}")
 
     # Process each sound file and its corresponding XML
     for wav_file, xml_file in zip(training_wav_files, training_xml_files):
