@@ -1,12 +1,17 @@
 import numpy as np
-from keras.layers import Dense, Dropout, Activation
-from keras.layers import MaxPooling1D, Conv1D, LeakyReLU, BatchNormalization, Dense, Flatten, ReLU, ELU, SpatialDropout1D, Lambda
-from keras.layers import InputLayer, Input, GRU, Bidirectional
-from keras.models import Model
-import keras.backend as K
+# from keras.layers import Dense, Dropout, Activation
+# from keras.layers import MaxPooling1D, Conv1D, LeakyReLU, BatchNormalization, Dense, Flatten, ReLU, ELU, SpatialDropout1D, Lambda
+# from keras.layers import InputLayer, Input, GRU, Bidirectional
+# from keras.models import Model
+# import keras.backend as K
 
+from tensorflow.keras.layers import (Dense, Dropout, MaxPooling1D, Conv1D, LeakyReLU, 
+                                     BatchNormalization, Flatten, GRU, Bidirectional, 
+                                     TimeDistributed, Input, SpatialDropout1D)
+from tensorflow.keras.models import Model
 
-from .layers import *
+from .layers import *  # Make sure this is also TF 2.x compatible
+
 
 
 def get_denet(input_shape, n_classes, sr=16000, before_pooling=True, dropout=0.3):

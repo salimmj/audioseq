@@ -1,17 +1,23 @@
 import numpy as np
 import math
 import tensorflow as tf
-import keras
-from keras import backend as K
-# from keras.utils import conv_utils
+from tensorflow.keras import backend as K
+from tensorflow.keras import initializers, regularizers, constraints
+# from tensorflow.layers import Layer, Input, Conv1D, Dense, Reshape, Add, Lambda, GlobalMaxPooling1D, GlobalAveragePooling1D, Permute, multiply, Activation, Concatenate, TimeDistributed, Conv2D
+from tensorflow.keras import layers, models
+from tensorflow.keras.layers import Layer, Input, Conv1D, Dense, Reshape, Add, Lambda, GlobalMaxPooling1D, GlobalAveragePooling1D, Permute, multiply, Activation, Concatenate, TimeDistributed, Conv2D
 from tensorflow.python.keras.utils import conv_utils
-from keras import initializers
-from keras.layers import Layer, Input, Conv1D, Dense, Reshape, Add, Lambda, GlobalMaxPooling1D, GlobalAveragePooling1D, Permute, multiply, Activation, Concatenate, TimeDistributed, Conv2D
-from tensorflow import init_scope
+
+# import keras
+# from keras import backend as K
+# from utils import conv_utils
+# from tensorflow.python.utils import conv_utils
+# from keras import initializers
+# from layers import Layer, Input, Conv1D, Dense, Reshape, Add, Lambda, GlobalMaxPooling1D, GlobalAveragePooling1D, Permute, multiply, Activation, Concatenate, TimeDistributed, Conv2D
+# from tensorflow import init_scope
 
 import os
 from distutils.util import strtobool
-TF_KERAS = strtobool(os.environ.get('TF_KERAS', '0'))
 
 
 class LayerNorm(Layer):
@@ -116,7 +122,7 @@ class SincConv1D(Layer):
 
         window = 0.54 - 0.46 * K.cos(2 * math.pi * n / self.Filt_dim)
         window = K.cast(window, "float32")
-        window = K.variable(window)
+        # window = K.variable(window)
 
         # TODO what is this?
         t_right_linspace = np.linspace(
@@ -178,98 +184,177 @@ def sinc(band, t_right):
     y = K.concatenate([y_left, K.variable(K.ones(1)), y_right])
     return y
 
-class DELayer(Layer):
+# class DELayer(Layer):
 
+#     def __init__(self, data_format="channels_last", sum_channels=True, dropout=0.0, **kwargs):
+#         self.data_format = data_format
+
+#         self.sum_channels=sum_channels
+        
+#         self.dropout_rate = dropout
+
+#         super(DELayer, self).__init__(**kwargs)
+
+
+#     def build(self, input_shape):
+#         # Layers Initialization
+#         if len(input_shape)!=3:
+#           raise ValueError('DELayer expect input tensor of 3 dimension, tensor with shape {} and {} dimension passed'.format(input_shape, len(input_shape)))
+
+#         self.channel_axis = 1 if self.data_format == "channels_first" else -1
+#         self.steps_axis = -1 if self.data_format == "channels_first" else 1
+#         self.channel = input_shape[self.channel_axis]
+#         self.steps = input_shape[self.steps_axis]
+
+#         # MLP layer
+#         self._mlp = self.get_mlp(self.channel)
+#         self.trainable_weights += self._mlp.trainable_weights
+        
+#         # Other layers used
+#         if self.data_format == "channels_first":
+#           self._permute = Permute((2, 1))
+        
+#         if self.sum_channels:
+#           self._lambda_sum = Lambda(lambda x: K.sum(x, axis=self.channel_axis, keepdims=True))
+
+#         super(DELayer, self).build(input_shape)
+
+
+#     def call(self, x):
+
+#         if self.data_format == "channels_first":
+#           x = self._permute(x)
+
+#         self.out = []
+#         for i in range(self.channel):
+#             # For each feature map
+#             feature_map = K.expand_dims(x[:, :, i], axis=-1)
+
+#             # Apply Attention Branch
+#             self.out.append(self._mlp(feature_map))
+
+#         merge = layers.concatenate(self.out, axis=-1)
+
+#         # Matrix of shape (batch_size, #channels)
+#         weights = K.softmax(merge)
+        
+#         # Dropout regularization
+#         if K.learning_phase() == 1 and self.dropout_rate != 0.0 : #if training
+#           weights = tf.nn.dropout(weights, rate=self.dropout_rate)
+
+#         # Channel weighting
+#         refined_features = multiply([x, weights])
+
+#         if self.sum_channels:
+#           refined_features = self._lambda_sum(refined_features)
+
+#         if self.data_format == "channels_first":
+#           refined_features = self._permute(refined_features)
+        
+#         return refined_features
+
+        
+#     def compute_output_shape(self, input_shape):
+#         if self.sum_channels:
+#           if self.data_format == "channels_first":
+#             out_shape = (input_shape[0], 1, self.steps)
+#           else:
+#             out_shape = (input_shape[0], self.steps, 1)
+#         else:
+#           out_shape = input_shape
+
+#         return out_shape
+        
+        
+#     def get_mlp(self, n_channels):
+    
+#       hidd_layer = models.Sequential()
+#       hidd_layer.add(layers.Conv1D(30, kernel_size=7, activation='relu',strides=2, data_format="channels_last"))
+#       hidd_layer.add(layers.Conv1D(30, kernel_size=7, activation='relu',strides=3, data_format="channels_last"))
+#       hidd_layer.add(layers.Conv1D(10, kernel_size=7, activation='relu',strides=3, data_format="channels_last"))
+#       hidd_layer.add(layers.Flatten())
+#       hidd_layer.add(layers.Dense(128, activation='relu', use_bias=True, kernel_initializer="glorot_uniform", bias_initializer="zeros"))
+#       hidd_layer.add(layers.Dense(64, activation='relu', use_bias=True, kernel_initializer="glorot_uniform", bias_initializer="zeros"))
+#       hidd_layer.add(layers.Dense(1, use_bias=True, kernel_initializer="glorot_uniform", bias_initializer="zeros"))
+      
+#       return hidd_layer
+        
+class DELayer(Layer):
     def __init__(self, data_format="channels_last", sum_channels=True, dropout=0.0, **kwargs):
         self.data_format = data_format
-
-        self.sum_channels=sum_channels
-        
+        self.sum_channels = sum_channels
         self.dropout_rate = dropout
-
         super(DELayer, self).__init__(**kwargs)
 
-
     def build(self, input_shape):
-        # Layers Initialization
-        if len(input_shape)!=3:
-          raise ValueError('DELayer expect input tensor of 3 dimension, tensor with shape {} and {} dimension passed'.format(input_shape, len(input_shape)))
-
+        if len(input_shape) != 3:
+            raise ValueError('DELayer expects input tensor of 3 dimensions, but tensor with shape {} and {} dimensions passed'.format(input_shape, len(input_shape)))
+        
         self.channel_axis = 1 if self.data_format == "channels_first" else -1
         self.steps_axis = -1 if self.data_format == "channels_first" else 1
         self.channel = input_shape[self.channel_axis]
         self.steps = input_shape[self.steps_axis]
 
         # MLP layer
-        self._mlp = self.get_mlp(self.channel)
+        self._mlp = self.get_mlp(self.channel, input_shape=(None, 1))  # Pass an initial input shape for the Dense layer
+
+        self._mlp.build(input_shape=(None, None, 1))  # Build the MLP layer
         self.trainable_weights += self._mlp.trainable_weights
-        
-        # Other layers used
+
         if self.data_format == "channels_first":
-          self._permute = Permute((2, 1))
-        
+            self._permute = Permute((2, 1))
+
         if self.sum_channels:
-          self._lambda_sum = Lambda(lambda x: K.sum(x, axis=self.channel_axis, keepdims=True))
+            self._lambda_sum = Lambda(lambda x: K.sum(x, axis=self.channel_axis, keepdims=True))
 
         super(DELayer, self).build(input_shape)
 
-
     def call(self, x):
-
         if self.data_format == "channels_first":
-          x = self._permute(x)
+            x = self._permute(x)
 
         self.out = []
         for i in range(self.channel):
-            # For each feature map
             feature_map = K.expand_dims(x[:, :, i], axis=-1)
-
-            # Apply Attention Branch
             self.out.append(self._mlp(feature_map))
 
-        merge = keras.layers.concatenate(self.out, axis=-1)
-
-        # Matrix of shape (batch_size, #channels)
+        merge = layers.concatenate(self.out, axis=-1)
         weights = K.softmax(merge)
-        
-        # Dropout regularization
-        if K.learning_phase() == 1 and self.dropout_rate != 0.0 : #if training
-          weights = tf.nn.dropout(weights, rate=self.dropout_rate)
 
-        # Channel weighting
+        if K.learning_phase() == 1 and self.dropout_rate != 0.0:
+            weights = tf.nn.dropout(weights, rate=self.dropout_rate)
+
         refined_features = multiply([x, weights])
 
         if self.sum_channels:
-          refined_features = self._lambda_sum(refined_features)
+            refined_features = self._lambda_sum(refined_features)
 
         if self.data_format == "channels_first":
-          refined_features = self._permute(refined_features)
-        
+            refined_features = self._permute(refined_features)
+
         return refined_features
 
-        
     def compute_output_shape(self, input_shape):
         if self.sum_channels:
-          if self.data_format == "channels_first":
-            out_shape = (input_shape[0], 1, self.steps)
-          else:
-            out_shape = (input_shape[0], self.steps, 1)
+            if self.data_format == "channels_first":
+                out_shape = (input_shape[0], 1, self.steps)
+            else:
+                out_shape = (input_shape[0], self.steps, 1)
         else:
-          out_shape = input_shape
+            out_shape = input_shape
 
         return out_shape
-        
-        
-    def get_mlp(self, n_channels):
-    
-      hidd_layer = keras.models.Sequential()
-      hidd_layer.add(keras.layers.Conv1D(30, kernel_size=7, activation='relu',strides=2, data_format="channels_last"))
-      hidd_layer.add(keras.layers.Conv1D(30, kernel_size=7, activation='relu',strides=3, data_format="channels_last"))
-      hidd_layer.add(keras.layers.Conv1D(10, kernel_size=7, activation='relu',strides=3, data_format="channels_last"))
-      hidd_layer.add(keras.layers.Flatten())
-      hidd_layer.add(keras.layers.Dense(128, activation='relu', use_bias=True, kernel_initializer="glorot_uniform", bias_initializer="zeros"))
-      hidd_layer.add(keras.layers.Dense(64, activation='relu', use_bias=True, kernel_initializer="glorot_uniform", bias_initializer="zeros"))
-      hidd_layer.add(keras.layers.Dense(1, use_bias=True, kernel_initializer="glorot_uniform", bias_initializer="zeros"))
-      
-      return hidd_layer
-        
+
+
+    def get_mlp(self, n_channels, input_shape):
+        hidd_layer = models.Sequential()
+        hidd_layer.add(layers.Conv1D(30, kernel_size=7, activation='relu', strides=2, data_format="channels_last"))
+        hidd_layer.add(layers.Conv1D(30, kernel_size=7, activation='relu', strides=3, data_format="channels_last"))
+        hidd_layer.add(layers.Conv1D(10, kernel_size=7, activation='relu', strides=3, data_format="channels_last"))
+        hidd_layer.add(layers.Flatten())
+        hidd_layer.add(layers.Dense(128, activation='relu', use_bias=True, kernel_initializer="glorot_uniform", bias_initializer="zeros", input_shape=input_shape))
+        hidd_layer.add(layers.Dense(64, activation='relu', use_bias=True, kernel_initializer="glorot_uniform", bias_initializer="zeros"))
+        hidd_layer.add(layers.Dense(1, use_bias=True, kernel_initializer="glorot_uniform", bias_initializer="zeros"))
+
+        return hidd_layer
+

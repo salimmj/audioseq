@@ -1,5 +1,4 @@
 import xml.etree.ElementTree as ET
-import soundfile as sf
 import numpy as np
 import glob
 from denet import get_denet
@@ -7,7 +6,11 @@ import random
 
 from constants import *
 from utils import *
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.metrics import Accuracy
 
+import tensorflow as tf
+tf.autograph.set_verbosity(0)
 
 
 def main():
@@ -34,11 +37,11 @@ def main():
     total_sequences = all_frames.shape[0]
 
     # Compile model
-    optimizer = 'adam'  # You can choose other optimizers
     loss = 'categorical_crossentropy'  # Suitable for multi-class classification
-    metrics = ['accuracy']  # Other metrics can be added
 
-    model.compile(optimizer=optimizer, loss=loss, metrics=metrics)
+
+    model.compile(optimizer=Adam(), loss='categorical_crossentropy', metrics=[Accuracy()])
+
 
     # Inside the main loop where batches are processed
     for start_idx in range(0, total_sequences - batch_size + 1, batch_size):
